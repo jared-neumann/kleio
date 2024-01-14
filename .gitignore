@@ -129,8 +129,8 @@ env.bak/
 venv.bak/
 
 # Data
-data/input/*
-data/output/*
+data/input/*.pdf
+data/output/*.pdf
 
 # Spyder project settings
 .spyderproject
