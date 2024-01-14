@@ -1,0 +1,23 @@
+# gitignore typical file extensions: pdf, txt, jpg, png, etc.
+
+
+# gitignore files in a directory
+*.pdf
+*.txt
+*.jpg
+*.png
+*.docx
+*.doc
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.csv
+*.zip
+*.rar
+*.tar.gz
+*.tar
+*.gz
+*.tgz
+*.7z
+*.exe
