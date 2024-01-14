@@ -1,0 +1,23 @@
+[flake8]
+# E203: Whitespace before ':'
+# E266: Too many leading '#' for block comment
+# W503: Line break occurred before a binary operator
+# F403: 'from module import *' used; unable to detect undefined names
+# F401: Module imported but unused
+ignore = E203, E266, W503, F403, F401
+
+# Set the maximum line length to 88 characters
+max-line-length = 88
+
+# Set the maximum McCabe complexity of your functions/methods
+max-complexity = 18
+
+# Select the following error and warning codes:
+# B: Bugbear. A plugin for Flake8 finding likely bugs and design problems in your program. Contains warnings that don't belong in pyflakes and pep8.
+# C: Complexity. This is not a Flake8 plugin but is instead provided by McCabe. These warnings are still controlled by Flake8.
+# E: All errors in the E category are from pep8 and indicate syntax errors.
+# F: All errors in the F category are from pyflakes, which checks for semantic errors.
+# W: All errors in the W category are from pep8 and indicate style and whitespace issues.
+# T4: T4xx errors come from the flake8-todo plugin. This plugin checks for TODO notes left in the code.
+# B9: B9xx errors come from the flake8-bugbear plugin. This plugin checks for likely bugs and design problems.
+select = B,C,E,F,W,T4,B9
