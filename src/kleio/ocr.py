@@ -35,17 +35,10 @@ from kleio.image_utils import (
     gaussian_blur_image,
 )
 
+from kleio.constants import DEFAULT_IMAGE_KWARGS
+
 # set up logging
 logger = setup_logger(__name__)
-
-IMAGE_CONFIG = {
-    "grayscale": True,
-    "resize": False,
-    "threshold": True,
-    "deskew": False,
-    "dilate_and_erode": False,
-    "blur": False,
-}
 
 
 # for image options, we need to preprocess given the functions in utils.py
@@ -207,6 +200,7 @@ def get_text_from_pdf_without_text(filepath, image_kwargs: dict = None):
         # get text from each image
         for image in images:
             image = np.array(image)
+            image = preprocess_image(image, image_kwargs)
             page_text = pytesseract.image_to_string(image)
             page_text = format_text_string(page_text)
             page_texts.append(page_text)
@@ -264,7 +258,9 @@ def get_text_from_text_string(text):
 
 # main function
 # routes to the appropriate function based on the input
-def retrieve_text(filepath_dir_or_string: str, image_kwargs: dict = IMAGE_CONFIG):
+def retrieve_text(
+    filepath_dir_or_string: str, image_kwargs: dict = DEFAULT_IMAGE_KWARGS
+):
     """
     Get text from a file or text string.
 

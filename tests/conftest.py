@@ -4,6 +4,8 @@
 import pytest
 import os
 
+import cv2
+
 # examples for testing get_file_extension
 @pytest.fixture()
 def example_filenames_with_extensions():
@@ -43,3 +45,10 @@ def example_data_filepaths():
 
     return filepaths
 
+
+# example for testing image_utils
+@pytest.fixture()
+def example_image():
+    filepath = "tests/test_input/test_1.jpg"
+    image = cv2.imread(filepath)
+    return image

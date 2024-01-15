@@ -7,8 +7,8 @@ def tests(session):
 
 @nox.session(python="3.11")
 def black(session):
-    session.run("black", "src")
+    session.run("black", "src", external=True)
 
 @nox.session(python="3.11")
 def lint(session):
-    session.run("flake8", "src")
+    session.run("flake8", "src", external=True)

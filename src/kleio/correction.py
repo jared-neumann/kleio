@@ -3,7 +3,6 @@
 
 # third-party imports
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 from tqdm import tqdm
 
 from kleio.general_utils import (

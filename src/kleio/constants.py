@@ -1,3 +1,4 @@
+# CORRECTION CONSTANTS
 SYS_CORRECTION_MESSAGE = """
 You are a helpful digitization specialist tasked with correcting OCR
 errors in digitized texts.
@@ -65,6 +66,7 @@ DEFAULT_CORRECTION_KWARGS = {
     "comments": "N/A",
 }
 
+# COLLATION CONSTANTS
 SYS_COLLATION_MESSAGE = """
 You are a detail-oriented content editor who is tasked with formatting OCR
 text in a particular way for a client.
@@ -115,4 +117,41 @@ DEFAULT_COLLATION_KWARGS = {
     "remove_word_breaks": True,
     "add_section_tags": True,
     "keep_page_breaks": True,
+}
+
+# IMAGE PROCESSING CONSTANTS
+DEFAULT_IMAGE_KWARGS = {
+    "grayscale": True,
+    "resize": False,
+    "threshold": True,
+    "deskew": False,
+    "dilate_and_erode": False,
+    "blur": False,
+}
+
+# TRANSLATION CONSTANTS
+SYS_TRANSLATION_MESSAGE = """
+You are a translator tasked with translating a digitized text.
+"""
+
+HMN_TRANSLATION_MESSAGE = """
+The text below is a snippet from a digitized text. Your job is to carefully
+read the text and faithfully translate it into the target language: {target_language}.
+This means keeping in mind the context of the text as you do your job. You have the
+following additional information about the source text, if available:
+- Source title: {title}
+- Source author: {author}
+- Notes: {notes}
+
+With this context in mind, please carefully read the following text, translate it,
+and only return the translated text:
+
+{text}
+"""
+
+DEFAULT_TRANSLATION_KWARGS = {
+    "target_language": "N/A",
+    "title": "N/A",
+    "author": "N/A",
+    "notes": "N/A",
 }

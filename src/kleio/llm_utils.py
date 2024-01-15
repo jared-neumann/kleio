@@ -1,4 +1,8 @@
 # llm utility functions
+
+# built-in modules
+import subprocess
+
 # third-party modules
 from langchain.prompts.chat import (
     ChatPromptTemplate,
@@ -7,6 +11,9 @@ from langchain.prompts.chat import (
 )
 from langchain_openai import ChatOpenAI
 import tiktoken
+import spacy
+from nltk.tokenize import sent_tokenize
+from tqdm import tqdm
 
 # internal modules
 from kleio.general_utils import (
@@ -92,7 +99,7 @@ def parse_chunks(
     enc = None
     if "gpt" in model_name:
         enc = "r50k_base"
-    
+
     if enc:
         encoding = tiktoken.get_encoding(enc)
 
@@ -114,3 +121,84 @@ def parse_chunks(
         return None
 
     return chunks
+
+
+def sentencize(text: str):
+    """
+    Split a text into sentences.
+
+    Args:
+        text (str): Text to be split into sentences.
+
+    Returns:
+        list: List of sentences.
+    """
+    sentences = None
+    logger.info("Splitting text into sentences")
+    try:
+        # spacy
+        nlp = spacy.load("en_core_web_sm")
+        sentences = [sent.text for sent in nlp(text).sents]
+    except Exception as e:
+        logger.warn(f"Error while loading spacy model: {e}")
+        logger.info("Proceeding with NLTK sentence tokenizer")
+
+        try:
+            # nltk
+            sentences = sent_tokenize(text)
+        except Exception as e:
+            logger.error(f"Error while sentence tokenizing text: {e}")
+            return None
+
+    return sentences
+
+
+def parse_sentence_chunks(
+    text: str, model_name="gpt-3.5-turbo", chunk_size: int = 1024
+):
+    """
+    Parse a text into chunks of sentences.
+
+    Args:
+        text (str): Text to be parsed into chunks.
+
+    Returns:
+        list: List of chunks.
+    """
+    if text:
+        # split the text into sentences
+        sentences = sentencize(text)
+
+        # encode the sentences
+        enc = None
+        if "gpt" in model_name:
+            enc = "r50k_base"
+
+        if enc:
+            encoding = tiktoken.get_encoding(enc)
+
+        try:
+            encoded_sentences = [encoding.encode(sent) for sent in sentences]
+        except Exception as e:
+            logger.error(f"Error while encoding sentences: {e}")
+            return None
+
+        # chunk the sentences
+        chunks = []
+        chunk = []
+
+        for encoded_sentence in encoded_sentences:
+            if len(chunk) + len(encoded_sentence) > chunk_size:
+                chunks.append(chunk)
+                chunk = []
+            chunk += encoded_sentence
+        chunks.append(chunk)
+
+        # decode the chunks
+        try:
+            chunks = [encoding.decode(chunk) for chunk in chunks]
+        except Exception as e:
+            logger.error(f"Error while decoding chunks: {e}")
+            return None
+
+        return chunks
