@@ -10,6 +10,7 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
 )
 from langchain_openai import ChatOpenAI
+from transformers import AutoTokenizer
 import tiktoken
 import spacy
 from nltk.tokenize import sent_tokenize
@@ -61,20 +62,31 @@ def create_openai_prompt(system_message: str, human_message: str, more_info: dic
     return cht_prompt
 
 
-def create_openai_llm(api_key: str, model_name: str, temperature: int):
+def create_openai_llm(api_key: str, model_name: str, base_url: str|None=None, temperature: int=0):
     """
     Create an LLM from OpenAI.
     """
     logger.info("Creating OpenAI LLM")
 
-    # create the llm
-    try:
-        llm = ChatOpenAI(
-            openai_api_key=api_key, model_name=model_name, temperature=temperature
-        )
-    except Exception as e:
-        logger.error(f"Error while creating OpenAI LLM: {e}")
-        return None
+    if base_url:
+        try:
+            llm = ChatOpenAI(
+                api_key="not-needed",
+                base_url=base_url,
+            )
+        except Exception as e:
+            logger.error(f"Error while creating Local LLM: {e}")
+            return None
+    else:
+        try:
+            llm = ChatOpenAI(
+                api_key=api_key,
+                model_name=model_name,
+                temperature=temperature,
+            )
+        except Exception as e:
+            logger.error(f"Error while creating OpenAI LLM: {e}")
+            return None
 
     return llm
 
@@ -97,27 +109,51 @@ def parse_chunks(
         list: List of chunks.
     """
     enc = None
+    tokenizer = None
     if "gpt" in model_name:
         enc = "r50k_base"
+    elif model_name:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     if enc:
         encoding = tiktoken.get_encoding(enc)
+        # encode the text
+        try:
+            text_encoding = encoding.encode(text)
+        except Exception as e:
+            logger.error(f"Error while encoding text: {e}")
+            return None
 
-    # encode the text
-    try:
-        text_encoding = encoding.encode(text)
-    except Exception as e:
-        logger.error(f"Error while encoding text: {e}")
-        return None
+        # chunk the text
+        try:
+            chunks = [
+                encoding.decode(text_encoding[i : i + chunk_size])
+                for i in range(0, len(text_encoding), chunk_size)
+            ]
+        except Exception as e:
+            logger.error(f"Error while chunking text: {e}")
+            return None
+    
+    elif tokenizer:
+        # tokenize the text
+        try:
+            text_tokenized = tokenizer.tokenize(text)
+        except Exception as e:
+            logger.error(f"Error while tokenizing text: {e}")
+            return None
 
-    # chunk the text
-    try:
-        chunks = [
-            encoding.decode(text_encoding[i : i + chunk_size])
-            for i in range(0, len(text_encoding), chunk_size)
-        ]
-    except Exception as e:
-        logger.error(f"Error while chunking text: {e}")
+        # chunk the text
+        try:
+            chunks = [
+                tokenizer.convert_tokens_to_string(text_tokenized[i : i + chunk_size])
+                for i in range(0, len(text_tokenized), chunk_size)
+            ]
+        except Exception as e:
+            logger.error(f"Error while chunking text: {e}")
+            return None
+        
+    else:
+        logger.error(f"Error while chunking text: no tokenizer or encoding found")
         return None
 
     return chunks

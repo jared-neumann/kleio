@@ -2,7 +2,7 @@
 
 
 # gitignore files in a directory
-*.pdf
+dnd5e.pdf
 *.txt
 *.jpg
 *.png

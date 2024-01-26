@@ -1,14 +1,8 @@
 # CORRECTION CONSTANTS
-SYS_CORRECTION_MESSAGE = """
-You are a helpful digitization specialist tasked with correcting OCR
-errors in digitized texts.
-"""
+SYS_CORRECTION_MESSAGE = """You are a digitization specialist tasked with correcting OCR errors in digitized texts."""
 
-HMN_CORRECTION_MESSAGE = """
-The text below is a snippet from a digitized text. Your job is to carefully
-read the text and faithfullycorrect the OCR. This means keeping in mind the
-context of the text as you do your job. You have the following additional
-information about the source text, if available:
+HMN_CORRECTION_MESSAGE = """### Instructions:
+The text below is a snippet from a digitized text. Your job is to carefully read the text and faithfully correct the OCR. This means keeping in mind the context of the text as you do your job. You have the following additional information about the source text, if available:
 - Source filename: {filename}
 - Source extension: {extension}
 - Source filetype: {filetype}
@@ -18,10 +12,17 @@ information about the source text, if available:
 - Language: {language}
 - Comments: {comments}
 
-With this context in mind, please carefully read the following text and
-faithfully correct the OCR and only return the corrected text:
+If you would like to add comments, please put them under a heading like this:
 
+### Comments:
+This is a comment.
+
+
+
+### Snippet:
 {text}
+
+### Response:
 """
 
 EXAMPLE_CORRECTION_TEXT = """
@@ -72,38 +73,36 @@ You are a detail-oriented content editor who is tasked with formatting OCR
 text in a particular way for a client.
 """
 
-HMN_COLLATION_MESSAGE = """
-You will be given a snippet of text from a digitized text as well as the formatted text
-immaediately before it for context if available. Your job is to carefully read the texts
-and adjust the format of the target text according to the client's needs and what makes
-sense. The client has provided you with the following answers to a questionaire
-for the end result:
-- Would you like to remove headers and footers? {remove_headers_and_footers}
-- What about page numbers, that sort of thing? {remove_page_numbers}
-- And extra spaces? reduce? {remove_excess_space}
-- Remove empty lines? {remove_empty_lines}
-- Should we concatenate lines? {remove_line_breaks}
-- Put words back together that were hyphenated across line-breaks? {remove_word_breaks}
-- Add section tags? {add_section_tags}
-- Keep page breaks? {keep_page_breaks}
+HMN_COLLATION_MESSAGE = """INSTRUCTIONS FOR FORMATTING OCR TEXT
+You will be given a snippet of text from a digitized text as well as the formatted text immaediately before it for context if available. Your job is to carefully read the texts and adjust the format of the target text according to the client's needs and what makes sense. The client has set the following criteria for formatting the text:
+- Remove headers and footers: {remove_headers_and_footers}
+- Remove page numbers: {remove_page_numbers}
+- Remove excess space: {remove_excess_space}
+- Remove empty lines: {remove_empty_lines}
+- Remove line breaks: {remove_line_breaks}
+- Remove word breaks: {remove_word_breaks}
+- Section annotation: {add_section_tags}
 
-If required by the client, tags should be added in the following format:
-[SECTION_HEADER]Section header[/SECTION_HEADER]
+DEFINITIONS AND EXAMPLES
+- Headers and footers include things like source urls, abbreviated titles, etc.
+- Excess space includes things like extra spaces between words, at the end of lines, between paragraphs, etc.
+- Empty lines include lines that are completely empty, as well as lines that only contain whitespace.
+- Line breaks are breaks caused by prior formatting and often break up sentences.
+- When line breaks occur, sometimes words are broken up and hyphenated; these are word breaks.
+- Section annotation involves adding tags to the text to indicate high level text layout.
+- - For simplicity, annotation only involves tagging titles and named sections.
+- - Annotation format is as follows: <HEADER>Section Name</HEADER>
 
-Sections include things like titles, chapter headings, named subsections, etc.
-But, you should ONLY use the tag: SECTION_HEADER. More specific tags are not
-necessary.
+VERY IMPORTANT NOTE
+ONLY output the formatted version of the target text. Do NOT include anything else in your output; no commentary, no notes, nothing else.
+If you absolutely have to add comments, please put them in double brackets like this: [[This is a comment.]].
 
-Headers and footers include things like page numbers, page titles, other
-random or unrelated or abbreviated text that appears at the top or bottom of a
-page, etc.
-
-Just output the formatted version of the target text. Here is the previously
-formatted text for additional context, if available:
+ADDITIONAL CONTEXT
+Here is the previously formatted text for additional context, if available:
 
 {previous_text}
 
-And here is the target text to format:
+TEXT TO FORMAT
 
 {text}
 """

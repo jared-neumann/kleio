@@ -64,6 +64,7 @@ def collate(
     api_key: str,
     model_name: str,
     llm_provider: str,
+    base_url: str | None = None,
     temperature: int = 0,
     chunk_size: int = 1024,
     system_message: str = SYS_COLLATION_MESSAGE,
@@ -75,8 +76,8 @@ def collate(
     """
 
     # concatenate the pages into a single string
-    # separate by [PAGE_BREAK]
-    text = "\n[PAGE_BREAK]\n".join(pages)
+    # separate by <PAGEBREAK>
+    text = "\n<PAGEBREAK>\n".join(pages)
 
     # we will need to chunk the text
     # then format each chunk
@@ -100,6 +101,7 @@ def collate(
         llm = create_openai_llm(
             api_key=api_key,
             model_name=model_name,
+            base_url=base_url,
             temperature=temperature,
         )
     else:

@@ -1,5 +1,6 @@
 # This file provides functions to correct OCR errors in raw text.
 # We'll be using langchain to implement LLMs to do the correction.
+import os
 
 # third-party imports
 from langchain_core.output_parsers import StrOutputParser
@@ -93,10 +94,25 @@ def correct_chunks(text: dict or str, chain, model_name: str, chunk_size: int):
     # and correct each one
     try:
         for page in tqdm(chunks_by_page):
+            index = chunks_by_page.index(page)
+            logger.info("Correcting chunks for page %s", index)
+
             corrected_page = []
             for chunk in page:
                 corrected_chunk = correct_chunk(chunk, chain)
                 corrected_page.append(corrected_chunk)
+            corrected_page = "".join(corrected_page)
+
+            # create a file if it doesn't exist
+            if not os.path.exists("output.txt"):
+                with open("output.txt", "w") as f:
+                    f.write("")
+
+            # write to file
+            with open("output.txt", "a") as f:
+                f.write(corrected_page)
+
+            # append to list of corrected pages
             corrected_pages.append("".join(corrected_page))
     except Exception as e:
         logger.error(f"Error while correcting chunks: {e}")
@@ -111,6 +127,7 @@ def get_correction(
     api_key: str,  # api key has to match llm provider TODO: add more providers
     llm_provider: str = "openai",  # one of ['openai', 'huggingface', etc.]
     model_name: str = "gpt-3.5-turbo-16k",  # also has to match accordingly
+    base_url: str = None,
     temperature: int = 0,
     chunk_size: int = 1024,
     system_message: str = SYS_CORRECTION_MESSAGE,
@@ -133,10 +150,10 @@ def get_correction(
 
         # create the llm
         llm = create_openai_llm(
-            api_key=api_key, model_name=model_name, temperature=temperature
+            api_key=api_key, model_name=model_name, base_url=base_url, temperature=temperature
         )
     else:
-        logger.error("LLM provider currently supported")
+        logger.error("LLM provider not currently supported")
         return None
 
     # create the output parser
