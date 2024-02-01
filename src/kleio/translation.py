@@ -1,14 +1,3 @@
-# TODO: Implement translation
-"""
-This file provides functions for translating text.
-The input is expected to be either a dict or string.
-Text is retrieved.
-Then it is parsed into sentences.
-The sentences are chunked.
-The chunks are translated.
-The translated chunks are concatenated.
-The concatenated chunks are returned.
-"""
 # third-party imports
 from langchain_core.output_parsers import StrOutputParser
 from tqdm import tqdm
@@ -93,7 +82,8 @@ def translate(
     chunk_size: int = 1024,
     system_message: str = SYS_TRANSLATION_MESSAGE,
     human_message: str = HMN_TRANSLATION_MESSAGE,
-    more_info: dict = DEFAULT_TRANSLATION_KWARGS,
+    target_language: str="N/A",
+    notes: str="N/A",
 ):
     """
     Translate text.
@@ -127,6 +117,12 @@ def translate(
     else:
         logger.error("Text is neither a string nor a dictionary")
         return None
+    
+    # create the more info dictionary
+    more_info = {
+        "target_language": target_language,
+        "notes": notes,
+    }
 
     if llm_provider == "openai":
         # create the prompt

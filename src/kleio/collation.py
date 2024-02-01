@@ -16,8 +16,7 @@ from kleio.llm_utils import (
 
 from kleio.constants import (
     SYS_COLLATION_MESSAGE,
-    HMN_COLLATION_MESSAGE,
-    DEFAULT_COLLATION_KWARGS,
+    HMN_COLLATION_MESSAGE
 )
 
 # set up logging
@@ -39,7 +38,7 @@ def collate_chunk(chunk: str, chain, previous_chunk: str):
     return output
 
 
-def collate_chunks(chain, chunks: list, model_name: str):
+def collate_chunks(chain, chunks: list):
     """
     Collate a list of chunks into a single text.
     """
@@ -69,7 +68,14 @@ def collate(
     chunk_size: int = 1024,
     system_message: str = SYS_COLLATION_MESSAGE,
     human_message: str = HMN_COLLATION_MESSAGE,
-    more_info: dict = DEFAULT_COLLATION_KWARGS,
+    remove_headers_and_footers: bool = True,
+    remove_page_numbers: bool = True,
+    remove_excess_space: bool = True,
+    remove_empty_lines: bool = False,
+    remove_line_breaks: bool = False,
+    remove_word_breaks: bool = True,
+    add_section_tags: bool = True,
+    keep_page_breaks: bool = True,
 ):
     """
     Collate a list of pages into a single text given a few formatting options.
@@ -78,6 +84,18 @@ def collate(
     # concatenate the pages into a single string
     # separate by <PAGEBREAK>
     text = "\n<PAGEBREAK>\n".join(pages)
+
+    # convert collation args to more_info dict to put into prompt
+    more_info = {
+        "remove_headers_and_footers": remove_headers_and_footers,
+        "remove_page_numbers": remove_page_numbers,
+        "remove_excess_space": remove_excess_space,
+        "remove_empty_lines": remove_empty_lines,
+        "remove_line_breaks": remove_line_breaks,
+        "remove_word_breaks": remove_word_breaks,
+        "add_section_tags": add_section_tags,
+        "keep_page_breaks": keep_page_breaks,
+    }
 
     # we will need to chunk the text
     # then format each chunk

@@ -132,12 +132,29 @@ def get_correction(
     chunk_size: int = 1024,
     system_message: str = SYS_CORRECTION_MESSAGE,
     human_message: str = HMN_CORRECTION_MESSAGE,
-    more_info: dict = DEFAULT_CORRECTION_KWARGS,
+    filename: str="N/A",
+    filetype: str="N/A",
+    ocr_software: str="N/A",
+    image_preprocessing_software: str="N/A",
+    date: str="N/A",
+    language: str="N/A",
+    comments: str="N/A",
 ):
     """
     Get a correction from an LLM.
     """
     logger.info("Getting correction from LLM")
+
+    # create the more info dictionary
+    more_info = {
+        "filename": filename,
+        "filetype": filetype,
+        "ocr_software": ocr_software,
+        "image_preprocessing_software": image_preprocessing_software,
+        "date": date,
+        "language": language,
+        "comments": comments,
+    }
 
     # CASE 1: openai
     if llm_provider == "openai":

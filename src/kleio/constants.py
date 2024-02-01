@@ -4,7 +4,6 @@ SYS_CORRECTION_MESSAGE = """You are a digitization specialist tasked with correc
 HMN_CORRECTION_MESSAGE = """### Instructions:
 The text below is a snippet from a digitized text. Your job is to carefully read the text and faithfully correct the OCR. This means keeping in mind the context of the text as you do your job. You have the following additional information about the source text, if available:
 - Source filename: {filename}
-- Source extension: {extension}
 - Source filetype: {filetype}
 - OCR software: {ocr_software}
 - Image preprocessing software: {image_preprocessing_software}
@@ -56,17 +55,6 @@ various Branches of the Philofophical Sciences. ~~
 A2
 """
 
-DEFAULT_CORRECTION_KWARGS = {
-    "filename": "N/A",
-    "extension": "PDF",
-    "filetype": "N/A",
-    "ocr_software": "pytesseract",
-    "image_preprocessing_software": "opencv",
-    "date": "N/A",
-    "language": "N/A",
-    "comments": "N/A",
-}
-
 # COLLATION CONSTANTS
 SYS_COLLATION_MESSAGE = """
 You are a detail-oriented content editor who is tasked with formatting OCR
@@ -107,27 +95,6 @@ TEXT TO FORMAT
 {text}
 """
 
-DEFAULT_COLLATION_KWARGS = {
-    "remove_headers_and_footers": True,
-    "remove_page_numbers": True,
-    "remove_excess_space": True,
-    "remove_empty_lines": False,
-    "remove_line_breaks": False,
-    "remove_word_breaks": True,
-    "add_section_tags": True,
-    "keep_page_breaks": True,
-}
-
-# IMAGE PROCESSING CONSTANTS
-DEFAULT_IMAGE_KWARGS = {
-    "grayscale": True,
-    "resize": False,
-    "threshold": True,
-    "deskew": False,
-    "dilate_and_erode": False,
-    "blur": False,
-}
-
 # TRANSLATION CONSTANTS
 SYS_TRANSLATION_MESSAGE = """
 You are a translator tasked with translating a digitized text.
@@ -136,21 +103,13 @@ You are a translator tasked with translating a digitized text.
 HMN_TRANSLATION_MESSAGE = """
 The text below is a snippet from a digitized text. Your job is to carefully
 read the text and faithfully translate it into the target language: {target_language}.
-This means keeping in mind the context of the text as you do your job. You have the
-following additional information about the source text, if available:
-- Source title: {title}
-- Source author: {author}
-- Notes: {notes}
+This means keeping in mind the context of the text as you do your job.
+
+NOTES (if available):
+{notes}
 
 With this context in mind, please carefully read the following text, translate it,
 and only return the translated text:
 
 {text}
 """
-
-DEFAULT_TRANSLATION_KWARGS = {
-    "target_language": "N/A",
-    "title": "N/A",
-    "author": "N/A",
-    "notes": "N/A",
-}

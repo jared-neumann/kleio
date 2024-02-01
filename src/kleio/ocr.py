@@ -35,15 +35,21 @@ from kleio.image_utils import (
     gaussian_blur_image,
 )
 
-from kleio.constants import DEFAULT_IMAGE_KWARGS
-
 # set up logging
 logger = setup_logger(__name__)
 
 
 # for image options, we need to preprocess given the functions in utils.py
 # and a given config of what to do to the image
-def preprocess_image(image: np.ndarray, image_kwargs: dict = None) -> np.ndarray:
+def preprocess_image(
+        image: np.ndarray,
+        grayscale: bool=True,
+        resize: bool=False,
+        threshold: bool=True,
+        deskew: bool=False,
+        dilate_and_erode: bool=False,
+        blur: bool=False,
+    ) -> np.ndarray:
     """
     Preprocess an image to improve OCR accuracy.
 
@@ -62,29 +68,37 @@ def preprocess_image(image: np.ndarray, image_kwargs: dict = None) -> np.ndarray
     logger.info("Preprocessing image")
 
     # convert to grayscale
-    if image_kwargs["grayscale"]:
+    if grayscale:
         image = convert_image_to_grayscale(image)
     # resize image
-    if image_kwargs["resize"]:
+    if resize:
         image = resize_image(image)
     # threshold image
-    if image_kwargs["threshold"]:
+    if threshold:
         image = threshold_image(image)
     # deskew image
-    if image_kwargs["deskew"]:
+    if deskew:
         image = deskew_image(image)
     # dilate and erode image
-    if image_kwargs["dilate_and_erode"]:
+    if dilate_and_erode:
         image = dilate_and_erode_image(image)
     # blur image
-    if image_kwargs["blur"]:
+    if blur:
         image = gaussian_blur_image(image)
 
     return image
 
 
 # 1. image file
-def get_text_from_image(filepath, image_kwargs: dict = None):
+def get_text_from_image(
+        filepath,
+        grayscale: bool=True,
+        resize: bool=False,
+        threshold: bool=True,
+        deskew: bool=False,
+        dilate_and_erode: bool=False,
+        blur: bool=False,
+    ) -> str:
     """
     Get text from an image file.
 
@@ -105,7 +119,7 @@ def get_text_from_image(filepath, image_kwargs: dict = None):
 
     # preprocess image
     try:
-        image = preprocess_image(image, image_kwargs)
+        image = preprocess_image(image, grayscale, resize, threshold, deskew, dilate_and_erode, blur)
     except Exception as e:
         logger.error(f"Error while preprocessing image file {filepath}: {e}")
         return None
@@ -121,7 +135,15 @@ def get_text_from_image(filepath, image_kwargs: dict = None):
 
 
 # 2. directory of image files
-def get_text_from_image_directory(dirpath, image_kwargs: dict = None):
+def get_text_from_image_directory(
+        dirpath,
+        grayscale: bool=True,
+        resize: bool=False,
+        threshold: bool=True,
+        deskew: bool=False,
+        dilate_and_erode: bool=False,
+        blur: bool=False
+    ):
     """
     Get text from a directory of image files.
 
@@ -149,7 +171,7 @@ def get_text_from_image_directory(dirpath, image_kwargs: dict = None):
     # get text from each image file
     page_texts = []
     for image_file in image_files:
-        page_text = get_text_from_image(image_file, image_kwargs)
+        page_text = get_text_from_image(image_file, grayscale, resize, threshold, deskew, dilate_and_erode, blur)
         page_texts.append(page_text)
 
     return page_texts
@@ -180,7 +202,15 @@ def get_text_from_pdf_with_text(filepath):
 
 
 # 4. PDF file with without text
-def get_text_from_pdf_without_text(filepath, image_kwargs: dict = None):
+def get_text_from_pdf_without_text(
+        filepath,
+        grayscale: bool=True,
+        resize: bool=False,
+        threshold: bool=True,
+        deskew: bool=False,
+        dilate_and_erode: bool=False,
+        blur: bool=False,
+    ) -> list:
     """
     Get text from a PDF file that does not have text.
 
@@ -200,7 +230,7 @@ def get_text_from_pdf_without_text(filepath, image_kwargs: dict = None):
         # get text from each image
         for image in images:
             image = np.array(image)
-            image = preprocess_image(image, image_kwargs)
+            image = preprocess_image(image, grayscale, resize, threshold, deskew, dilate_and_erode, blur)
             page_text = pytesseract.image_to_string(image)
             page_text = format_text_string(page_text)
             page_texts.append(page_text)
@@ -259,8 +289,14 @@ def get_text_from_text_string(text):
 # main function
 # routes to the appropriate function based on the input
 def retrieve_text(
-    filepath_dir_or_string: str, image_kwargs: dict = DEFAULT_IMAGE_KWARGS
-):
+    filepath_dir_or_string: str,
+    grayscale: bool=True,
+    resize: bool=False,
+    threshold: bool=True,
+    deskew: bool=False,
+    dilate_and_erode: bool=False,
+    blur: bool=False,
+    ) -> dict:
     """
     Get text from a file or text string.
 
@@ -307,7 +343,7 @@ def retrieve_text(
                     "filename": os.path.basename(filepath_dir_or_string),
                     "extension": extension,
                     "pages": get_text_from_pdf_without_text(
-                        filepath_dir_or_string, image_kwargs
+                        filepath_dir_or_string, grayscale, resize, threshold, deskew, dilate_and_erode, blur
                     ),
                 }
 
@@ -316,7 +352,7 @@ def retrieve_text(
             return {
                 "filename": os.path.basename(filepath_dir_or_string),
                 "extension": extension,
-                "pages": [get_text_from_image(filepath_dir_or_string, image_kwargs)],
+                "pages": [get_text_from_image(filepath_dir_or_string, grayscale, resize, threshold, deskew, dilate_and_erode, blur)],
             }
 
         # CASE 3: text file
@@ -338,7 +374,7 @@ def retrieve_text(
             "filename": None,
             "extension": None,
             "pages": get_text_from_image_directory(
-                filepath_dir_or_string, image_kwargs
+                filepath_dir_or_string, grayscale, resize, threshold, deskew, dilate_and_erode, blur
             ),
         }
 
