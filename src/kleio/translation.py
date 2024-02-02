@@ -1,3 +1,5 @@
+import os
+
 # third-party imports
 from langchain_core.output_parsers import StrOutputParser
 from tqdm import tqdm
@@ -7,15 +9,15 @@ from kleio.general_utils import (
 )
 
 from kleio.llm_utils import (
-    create_openai_prompt,
-    create_openai_llm,
+    get_tokenizer,
+    create_prompt,
+    create_llm,
     parse_sentence_chunks,
 )
 
 from kleio.constants import (
     SYS_TRANSLATION_MESSAGE,
-    HMN_TRANSLATION_MESSAGE,
-    DEFAULT_TRANSLATION_KWARGS,
+    HMN_TRANSLATION_MESSAGE
 )
 
 # set up logging
@@ -27,17 +29,13 @@ def translate_chunk(chunk: str, chain):
     Translate a chunk of text.
     """
 
-    output = chain.invoke(
-        {
-            "text": chunk,
-        }
-    )
+    output = chain.invoke({"text": chunk})
 
     return output
 
 
 def translate_chunks(
-    text: str, chain, model_name: str = "gpt-3.5-turbo", chunk_size: int = 1024
+    text: str, chain, model_name: str, chunk_size: int, output_path: str, tokenizer
 ):
     """
     Translate chunks of text.
@@ -61,13 +59,22 @@ def translate_chunks(
         text = " ".join(text)
 
     # then, we need to parse the text into chunked sentences
-    chunks = parse_sentence_chunks(text, model_name, chunk_size)
+    logger.info("Parsing text into chunks...")
+    chunks = parse_sentence_chunks(text, model_name, chunk_size, tokenizer)
+    logger.debug(f"Chunks: {chunks}")
 
     # then, we need to translate the chunks
     translated_chunks = []
 
+    logger.info(f"Translating {len(chunks)} chunks")
     for chunk in tqdm(chunks):
         translated_chunk = translate_chunk(chunk, chain)
+        logger.debug(f"Translated chunk: {translated_chunk}")
+
+        # write the output to a file
+        with open(output_path, "a") as f:
+            f.write(translated_chunk)
+
         translated_chunks.append(translated_chunk)
 
     return translated_chunks
@@ -75,11 +82,12 @@ def translate_chunks(
 
 def translate(
     text: dict or str,
-    api_key: str,
-    model_name: str,
-    llm_provider: str,
+    api_key: str, # "not-needed" for local models
+    model_name: str = "gpt-3.5-turbo",
+    base_url: str | None = None,
+    output_path: str = "translation.txt",
     temperature: int = 0,
-    chunk_size: int = 1024,
+    chunk_size: int = 2048,
     system_message: str = SYS_TRANSLATION_MESSAGE,
     human_message: str = HMN_TRANSLATION_MESSAGE,
     target_language: str="N/A",
@@ -93,7 +101,6 @@ def translate(
             containing a list of pages.
         api_key (str): API key for the LLM provider.
         model_name (str): Name of the model to be used for translation.
-        llm_provider (str): Name of the LLM provider.
         temperature (int): Temperature to be used for translation.
         chunk_size (int): Size of the chunks to be used for translation.
         system_message (str): System message to be used for translation.
@@ -104,6 +111,9 @@ def translate(
     Returns:
         str: String of the translated text.
     """
+
+    logger.info("Translating text...")
+    translation = None
 
     if isinstance(text, dict):
         if "pages" in text:
@@ -124,31 +134,82 @@ def translate(
         "notes": notes,
     }
 
-    if llm_provider == "openai":
-        # create the prompt
-        prompt = create_openai_prompt(
+    # create the prompt
+    prompt = None
+    try:
+        prompt = create_prompt(
             system_message=system_message,
             human_message=human_message,
             more_info=more_info,
         )
+    except Exception as e:
+        logger.error(f"Error while creating prompt: {e}")
 
-        # create the llm
-        llm = create_openai_llm(
+    # create the llm
+    llm = None
+    try:
+        llm = create_llm(
             api_key=api_key,
             model_name=model_name,
             temperature=temperature,
+            base_url=base_url
         )
+    except Exception as e:
+        logger.error(f"Error while creating LLM: {e}")
 
     # output parser
-    output_parser = StrOutputParser()
+    output_parser = None
+    try:
+        output_parser = StrOutputParser()
+    except Exception as e:
+        logger.error(f"Error while creating output parser: {e}")
 
     # create the chain
-    chain = prompt | llm | output_parser
+    chain = None
+    if prompt and llm and output_parser:
+        try:
+            chain = prompt | llm | output_parser
+        except Exception as e:
+            logger.error(f"Error while creating chain: {e}")
+    else:
+        logger.error("Could not create chain")
+
+    # see if output_filepath exists, if not, create it
+    if not os.path.exists(output_path):
+        try:
+            with open(output_path, "w") as f:
+                f.write("")
+        except Exception as e:
+            logger.error(f"Error while creating output file: {e}")
+
+    # if the file does exist, clear it
+    else:
+        try:
+            with open(output_path, "w") as f:
+                f.write("")
+        except Exception as e:
+            logger.error(f"Error while clearing output file: {e}")
+    
+    # get the tokenizer
+    tokenizer = None
+    try:
+        tokenizer = get_tokenizer(model_name)
+    except Exception as e:
+        logger.error(f"Error while getting tokenizer: {e}")
 
     # translate the chunks
-    translated_chunks = translate_chunks(text, chain, model_name, chunk_size)
+    translated_chunks = None
+    if chain:
+        try:
+            translated_chunks = translate_chunks(text, chain, model_name, chunk_size, output_path, tokenizer)
+        except Exception as e:
+            logger.error(f"Error while translating chunks: {e}")
 
     # concatenate the chunks
-    translation = " ".join(translated_chunks)
+    if translated_chunks:
+        try:
+            translation = " ".join(translated_chunks)
+        except Exception as e:
+            logger.error(f"Error while concatenating chunks: {e}")
 
     return translation

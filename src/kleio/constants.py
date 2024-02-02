@@ -1,8 +1,7 @@
 # CORRECTION CONSTANTS
-SYS_CORRECTION_MESSAGE = """You are a digitization specialist tasked with correcting OCR errors in digitized texts."""
+SYS_CORRECTION_MESSAGE = """You are a digitization specialist tasked with replacing poor OCR text with corrected text."""
 
-HMN_CORRECTION_MESSAGE = """### Instructions:
-The text below is a snippet from a digitized text. Your job is to carefully read the text and faithfully correct the OCR. This means keeping in mind the context of the text as you do your job. You have the following additional information about the source text, if available:
+HMN_CORRECTION_MESSAGE = """The text below is a snippet from a digitized text. Your job is to carefully read the text and faithfully correct the OCR. This means keeping in mind the context of the text as you do your job. You have the following additional information about the source text, if available:
 - Source filename: {filename}
 - Source filetype: {filetype}
 - OCR software: {ocr_software}
@@ -11,17 +10,10 @@ The text below is a snippet from a digitized text. Your job is to carefully read
 - Language: {language}
 - Comments: {comments}
 
-If you would like to add comments, please put them under a heading like this:
-
-### Comments:
-This is a comment.
-
-
-
-### Snippet:
+Please correct the following text:
 {text}
 
-### Response:
+Please return only your corrected version that snippet of text as if it had to seemlessly replace the original OCR text:
 """
 
 EXAMPLE_CORRECTION_TEXT = """
@@ -56,10 +48,7 @@ A2
 """
 
 # COLLATION CONSTANTS
-SYS_COLLATION_MESSAGE = """
-You are a detail-oriented content editor who is tasked with formatting OCR
-text in a particular way for a client.
-"""
+SYS_COLLATION_MESSAGE = """You are a detail-oriented content editor who is tasked with formatting OCR text in a particular way for a client."""
 
 HMN_COLLATION_MESSAGE = """INSTRUCTIONS FOR FORMATTING OCR TEXT
 You will be given a snippet of text from a digitized text as well as the formatted text immaediately before it for context if available. Your job is to carefully read the texts and adjust the format of the target text according to the client's needs and what makes sense. The client has set the following criteria for formatting the text:
@@ -69,7 +58,7 @@ You will be given a snippet of text from a digitized text as well as the formatt
 - Remove empty lines: {remove_empty_lines}
 - Remove line breaks: {remove_line_breaks}
 - Remove word breaks: {remove_word_breaks}
-- Section annotation: {add_section_tags}
+- Add section annotations: {add_section_tags}
 
 DEFINITIONS AND EXAMPLES
 - Headers and footers include things like source urls, abbreviated titles, etc.
@@ -77,30 +66,29 @@ DEFINITIONS AND EXAMPLES
 - Empty lines include lines that are completely empty, as well as lines that only contain whitespace.
 - Line breaks are breaks caused by prior formatting and often break up sentences.
 - When line breaks occur, sometimes words are broken up and hyphenated; these are word breaks.
-- Section annotation involves adding tags to the text to indicate high level text layout.
-- - For simplicity, annotation only involves tagging titles and named sections.
-- - Annotation format is as follows: <HEADER>Section Name</HEADER>
+- Section annotation involves adding a basic tag to identifiable section headings.
+- - ONLY DO THIS IF IT IS SET TO TRUE.
+- - Annotation ONLY involves tagging titles and named sections.
+- - Annotation format is as follows: <SECTION>Example</SECTION>
 
-VERY IMPORTANT NOTE
-ONLY output the formatted version of the target text. Do NOT include anything else in your output; no commentary, no notes, nothing else.
-If you absolutely have to add comments, please put them in double brackets like this: [[This is a comment.]].
+ADDITIONAL NOTES
+- ONLY output the formatted version of the target text. Do NOT include anything else in your output; no commentary, no notes, nothing else.
+- If you absolutely have to add comments, please put them in double brackets like this: [[This is a comment.]].
+- Go ahead and correct any remaining OCR errors, such as removing junk strings, removing other people's commentary on the text, etc.
 
 ADDITIONAL CONTEXT
-Here is the previously formatted text for additional context, if available:
+Here is the previously formatted text for additional context, if this is not the first or only chunk of the document:
 
 {previous_text}
 
 TEXT TO FORMAT
-
 {text}
 """
 
 # TRANSLATION CONSTANTS
-SYS_TRANSLATION_MESSAGE = """
-You are a translator tasked with translating a digitized text.
-"""
+SYS_TRANSLATION_MESSAGE = """You are a translator tasked with translating a digitized text."""
 
-HMN_TRANSLATION_MESSAGE = """
+HMN_TRANSLATION_MESSAGE = """INSTRUCTIONS
 The text below is a snippet from a digitized text. Your job is to carefully
 read the text and faithfully translate it into the target language: {target_language}.
 This means keeping in mind the context of the text as you do your job.

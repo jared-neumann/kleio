@@ -11,15 +11,15 @@ from kleio.general_utils import (
 )
 
 from kleio.llm_utils import (
-    create_openai_prompt,
-    create_openai_llm,
+    get_tokenizer,
+    create_prompt,
+    create_llm,
     parse_chunks,
 )
 
 from kleio.constants import (
     SYS_CORRECTION_MESSAGE,
-    HMN_CORRECTION_MESSAGE,
-    DEFAULT_CORRECTION_KWARGS,
+    HMN_CORRECTION_MESSAGE
 )
 
 # set up logging
@@ -35,16 +35,12 @@ def correct_chunk(chunk: str, chain):
     Correct a chunk of text.
     """
 
-    output = chain.invoke(
-        {
-            "text": chunk,
-        }
-    )
+    output = chain.invoke({"text": chunk})
 
     return output
 
 
-def correct_chunks(text: dict or str, chain, model_name: str, chunk_size: int):
+def correct_chunks(text: dict or str, chain, model_name: str, chunk_size: int, output_path: str):
     """
     Correct chunks of text.
 
@@ -77,18 +73,36 @@ def correct_chunks(text: dict or str, chain, model_name: str, chunk_size: int):
 
     # create a list for chunks
     chunks_by_page = []
-    for page in text:
+    logger.info("Parsing chunks...")
+
+    # create a tokenizer
+    tokenizer = None
+    try:
+        tokenizer = get_tokenizer(model_name)
+    except Exception as e:
+        logger.error(f"Error while getting tokenizer: {e}")
+
+    for page in tqdm(text):
         # get page chunks
         chunks = parse_chunks(
             text=page,
             chunk_size=chunk_size,
             model_name=model_name,
+            tokenizer=tokenizer,
         )
 
         # append to list of chunks
         chunks_by_page.append(chunks)
 
     corrected_pages = []
+
+    # create an output file if it doesn't exist
+    if not os.path.exists(output_path):
+        with open(output_path, "w") as f:
+            f.write("")
+    else: # erase the contents of the file if it exists
+        with open(output_path, "r+") as f:
+            f.truncate(0)
 
     # iterate through the chunks per page
     # and correct each one
@@ -103,13 +117,8 @@ def correct_chunks(text: dict or str, chain, model_name: str, chunk_size: int):
                 corrected_page.append(corrected_chunk)
             corrected_page = "".join(corrected_page)
 
-            # create a file if it doesn't exist
-            if not os.path.exists("output.txt"):
-                with open("output.txt", "w") as f:
-                    f.write("")
-
             # write to file
-            with open("output.txt", "a") as f:
+            with open(output_path, "a") as f:
                 f.write(corrected_page)
 
             # append to list of corrected pages
@@ -124,12 +133,12 @@ def correct_chunks(text: dict or str, chain, model_name: str, chunk_size: int):
 # we need to create a router function
 def get_correction(
     text: dict or str,
-    api_key: str,  # api key has to match llm provider TODO: add more providers
-    llm_provider: str = "openai",  # one of ['openai', 'huggingface', etc.]
-    model_name: str = "gpt-3.5-turbo-16k",  # also has to match accordingly
+    api_key: str, # "not-needed" for local models
+    model_name: str = "gpt-3.5-turbo-16k",
     base_url: str = None,
+    output_path: str = "correction.txt",
     temperature: int = 0,
-    chunk_size: int = 1024,
+    chunk_size: int = 2048,
     system_message: str = SYS_CORRECTION_MESSAGE,
     human_message: str = HMN_CORRECTION_MESSAGE,
     filename: str="N/A",
@@ -156,31 +165,55 @@ def get_correction(
         "comments": comments,
     }
 
-    # CASE 1: openai
-    if llm_provider == "openai":
-        # create the prompt
-        prompt = create_openai_prompt(
+    # create the prompt
+    prompt = None
+    try:
+        prompt = create_prompt(
             system_message=system_message,
             human_message=human_message,
             more_info=more_info,
         )
+    except Exception as e:
+        logger.error(f"Error while creating prompt: {e}")
 
-        # create the llm
-        llm = create_openai_llm(
-            api_key=api_key, model_name=model_name, base_url=base_url, temperature=temperature
+    # create the llm
+    llm = None
+    try:
+        llm = create_llm(
+            api_key=api_key,
+            model_name=model_name,
+            base_url=base_url,
+            temperature=temperature,
         )
-    else:
-        logger.error("LLM provider not currently supported")
-        return None
+    except Exception as e:
+        logger.error(f"Error while creating LLM: {e}")
 
     # create the output parser
-    output_parser = StrOutputParser()
+    output_parser = None
+    try:
+        output_parser = StrOutputParser()
+    except Exception as e:
+        logger.error(f"Error while creating output parser: {e}")
 
     # create the chain
-    chain = prompt | llm | output_parser
+    chain = None
+    if prompt and llm and output_parser:
+        chain = prompt | llm | output_parser
+    else:
+        logger.error("Could not create chain")
 
-    corrected_pages = correct_chunks(
-        chain=chain, text=text, model_name=model_name, chunk_size=chunk_size
-    )
+    # correct the text
+    corrected_pages = None
+    if chain:
+        try:
+            corrected_pages = correct_chunks(
+                text=text,
+                chain=chain,
+                model_name=model_name,
+                chunk_size=chunk_size,
+                output_path=output_path,
+            )
+        except Exception as e:
+            logger.error(f"Error while correcting text: {e}")
 
     return corrected_pages

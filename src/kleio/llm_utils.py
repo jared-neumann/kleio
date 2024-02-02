@@ -10,10 +10,9 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
 )
 from langchain_openai import ChatOpenAI
-from transformers import AutoTokenizer
-import tiktoken
+from transformers import AutoTokenizer, GPT2TokenizerFast
 import spacy
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
 from tqdm import tqdm
 
 # internal modules
@@ -24,18 +23,47 @@ from kleio.general_utils import (
 # set up logging
 logger = setup_logger(__name__)
 
+def get_tokenizer(model_name: str):
+    """
+    Get a tokenizer for a given model.
 
-def create_openai_prompt(system_message: str, human_message: str, more_info: dict):
+    Args:
+        model_name (str): Name of the model to be used.
+
+    Returns:
+        AutoTokenizer: Tokenizer for the model.
+    """
+    tokenizer = None
+    if "gpt" in model_name:
+        model_name = "Xenova/gpt-3.5-turbo"
+        try:
+            tokenizer = GPT2TokenizerFast.from_pretrained(model_name)
+        except Exception as e:
+            logger.error(f"Error while loading tokenizer: {e}")
+    else:
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+        except Exception as e:
+            logger.error(f"Error while loading tokenizer: {e}")
+
+    return tokenizer
+
+def create_prompt(system_message: str, human_message: str, more_info: dict):
     """
     Create a ChatOpenAI prompt.
-
+    
     Args:
         system_message (str): establishes the role of the llm
         human_message (str): provides context for the task and the text to
             be corrected
         more_info (dict): dictionary of additional information about the text
+
+    Returns:
+        ChatPromptTemplate: ChatOpenAI prompt
     """
-    logger.info("Creating OpenAI prompt for OCR correction task")
+
+    logger.info("Creating ChatOpenAI prompt...")
+    cht_prompt = None
 
     # set up the prompt
     # first, the system message
@@ -58,43 +86,60 @@ def create_openai_prompt(system_message: str, human_message: str, more_info: dic
     except Exception as e:
         logger.error(f"Error while creating chat prompt: {e}")
         return None
-
+    
     return cht_prompt
 
+def create_llm(
+        api_key: str="not-needed",
+        model_name: str="not-used",
+        base_url: str|None=None,
+        temperature: int=0
+) -> ChatOpenAI:
+    """
+    Create an LLM from ChatOpenAI.
 
-def create_openai_llm(api_key: str, model_name: str, base_url: str|None=None, temperature: int=0):
+    Args:
+        api_key (str): API key for the LLM provider.
+        model_name (str): Name of the model to be used.
+        base_url (str): Base URL for the LLM provider.
+        temperature (int): Temperature to be used.
+
+    Returns:
+        ChatOpenAI: LLM instance.
     """
-    Create an LLM from OpenAI.
-    """
-    logger.info("Creating OpenAI LLM")
+
+    logger.info("Creating OpenAI LLM...")
+    llm = None
 
     if base_url:
         try:
             llm = ChatOpenAI(
-                api_key="not-needed",
+                api_key=api_key,
+                model=model_name,
                 base_url=base_url,
+                temperature=temperature,
             )
         except Exception as e:
             logger.error(f"Error while creating Local LLM: {e}")
-            return None
+            logger.info("Make sure you have the local server running and the correct variables, or use another LLM provider/api key")
     else:
         try:
             llm = ChatOpenAI(
                 api_key=api_key,
-                model_name=model_name,
+                model=model_name,
                 temperature=temperature,
             )
         except Exception as e:
             logger.error(f"Error while creating OpenAI LLM: {e}")
-            return None
 
     return llm
 
 
 def parse_chunks(
     text: str,
-    chunk_size: int = 1024,
-    model_name: str = "gpt-3.5-turbo",
+    chunk_size: int = 2048,
+    model_name: str = "Xenova/gpt-3.5-turbo",
+    tokenizer: AutoTokenizer = None,
 ):
     """
     Parse a text into chunks of a given size according to
@@ -108,39 +153,15 @@ def parse_chunks(
     Returns:
         list: List of chunks.
     """
-    enc = None
-    tokenizer = None
-    if "gpt" in model_name:
-        enc = "r50k_base"
-    elif model_name:
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    if enc:
-        encoding = tiktoken.get_encoding(enc)
-        # encode the text
-        try:
-            text_encoding = encoding.encode(text)
-        except Exception as e:
-            logger.error(f"Error while encoding text: {e}")
-            return None
+    chunks = None
 
-        # chunk the text
-        try:
-            chunks = [
-                encoding.decode(text_encoding[i : i + chunk_size])
-                for i in range(0, len(text_encoding), chunk_size)
-            ]
-        except Exception as e:
-            logger.error(f"Error while chunking text: {e}")
-            return None
-    
-    elif tokenizer:
+    if tokenizer:
         # tokenize the text
         try:
             text_tokenized = tokenizer.tokenize(text)
         except Exception as e:
             logger.error(f"Error while tokenizing text: {e}")
-            return None
 
         # chunk the text
         try:
@@ -150,11 +171,22 @@ def parse_chunks(
             ]
         except Exception as e:
             logger.error(f"Error while chunking text: {e}")
-            return None
         
     else:
-        logger.error(f"Error while chunking text: no tokenizer or encoding found")
-        return None
+        # nltk tokenization
+        logger.info("No tokenizer loaded. Proceeding with NLTK tokenization...")
+        try:
+            words = word_tokenize(text)
+        except Exception as e:
+            logger.error(f"Error while tokenizing text: {e}")
+        
+        try:
+            chunks = [
+                " ".join(words[i : i + chunk_size])
+                for i in range(0, len(words), chunk_size)
+            ]
+        except Exception as e:
+            logger.error(f"Error while chunking text: {e}")
 
     return chunks
 
@@ -190,7 +222,7 @@ def sentencize(text: str):
 
 
 def parse_sentence_chunks(
-    text: str, model_name="gpt-3.5-turbo", chunk_size: int = 1024
+    text: str, chunk_size: int = 2048, model_name: str = "Xenova/gpt-3.5-turbo", tokenizer = None
 ):
     """
     Parse a text into chunks of sentences.
@@ -201,40 +233,39 @@ def parse_sentence_chunks(
     Returns:
         list: List of chunks.
     """
+
+    logger.info("Parsing text into sentence chunks...")
+    chunks = []
+
     if text:
         # split the text into sentences
         sentences = sentencize(text)
 
-        # encode the sentences
-        enc = None
-        if "gpt" in model_name:
-            enc = "r50k_base"
-
-        if enc:
-            encoding = tiktoken.get_encoding(enc)
-
+    if tokenizer:
         try:
-            encoded_sentences = [encoding.encode(sent) for sent in sentences]
+            # tokenize the sentences
+            tokenized_sentences = [tokenizer.tokenize(sent) for sent in sentences]
         except Exception as e:
-            logger.error(f"Error while encoding sentences: {e}")
+            logger.error(f"Error while tokenizing sentences: {e}")
+            return None
+    else:
+        logger.info("No tokenizer loaded. Proceeding with NLTK tokenization...")
+        try:
+            # nltk tokenization
+            tokenized_sentences = [word_tokenize(sent) for sent in sentences]
+        except Exception as e:
+            logger.error(f"Error while tokenizing sentences: {e}")
             return None
 
-        # chunk the sentences
-        chunks = []
-        chunk = []
+    # chunk the sentences
+    chunk = []
+    for sent in tokenized_sentences:
+        if len(" ".join(chunk)) + len(" ".join(sent)) > int(chunk_size):
+            chunks.append(" ".join(chunk))
+            chunk = []
+        chunk.append(sent)
 
-        for encoded_sentence in encoded_sentences:
-            if len(chunk) + len(encoded_sentence) > chunk_size:
-                chunks.append(chunk)
-                chunk = []
-            chunk += encoded_sentence
-        chunks.append(chunk)
+    if chunk:
+        chunks.append(" ".join(chunk))
 
-        # decode the chunks
-        try:
-            chunks = [encoding.decode(chunk) for chunk in chunks]
-        except Exception as e:
-            logger.error(f"Error while decoding chunks: {e}")
-            return None
-
-        return chunks
+    return chunks if len(chunks) > 0 else None
